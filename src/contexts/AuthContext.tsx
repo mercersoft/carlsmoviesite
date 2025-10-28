@@ -22,18 +22,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle redirect result first (for mobile)
-    getRedirectResult(auth).catch((error) => {
-      console.error('Auth redirect error:', error.code);
-    });
+    let unsubscribe: (() => void) | undefined;
 
-    // Set up auth state listener (this will handle both popup and redirect)
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    // Check for redirect result when component mounts
+    getRedirectResult(auth)
+      .then((result) => {
+        // If there's a redirect result, the user just signed in
+        if (result) {
+          console.log('Sign-in successful:', result.user.email);
+        }
+        // Set up auth state listener after checking redirect result
+        unsubscribe = onAuthStateChanged(auth, (user) => {
+          setUser(user);
+          setLoading(false);
+        });
+      })
+      .catch((error) => {
+        console.error('Auth redirect error:', error.code, error.message);
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const signInWithGoogle = async () => {
