@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { AuthButton } from '@/components/AuthButton'
 
 function App() {
   const [name, setName] = useState('')
@@ -35,7 +36,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background p-8">
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed top-4 right-4 z-50 flex gap-2">
+        <AuthButton />
         <ThemeToggle />
       </div>
       <div className="max-w-6xl mx-auto space-y-8">
