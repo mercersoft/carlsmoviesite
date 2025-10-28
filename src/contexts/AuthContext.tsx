@@ -30,36 +30,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle redirect result when user comes back from Google sign-in
+    let unsubscribe: (() => void) | undefined;
+
+    // First check for redirect result (important for mobile)
     getRedirectResult(auth)
       .then((result) => {
         if (result?.user) {
+          console.log('Redirect result: User signed in', result.user.email);
           setUser(result.user);
+        } else {
+          console.log('Redirect result: No user (normal page load)');
         }
       })
       .catch((error) => {
         console.error('Error getting redirect result:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+      })
+      .finally(() => {
+        // Set up auth state listener after handling redirect
+        unsubscribe = onAuthStateChanged(auth, (user) => {
+          console.log('Auth state changed:', user?.email || 'No user');
+          setUser(user);
+          setLoading(false);
+        });
       });
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    return unsubscribe;
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const signInWithGoogle = async () => {
     try {
-      if (isMobile()) {
+      const mobile = isMobile();
+      console.log('Sign in attempt - Mobile:', mobile);
+
+      if (mobile) {
         // Use redirect on mobile devices
+        console.log('Using signInWithRedirect');
         await signInWithRedirect(auth, googleProvider);
       } else {
         // Use popup on desktop
+        console.log('Using signInWithPopup');
         await signInWithPopup(auth, googleProvider);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in with Google:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
       throw error;
     }
   };
