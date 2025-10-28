@@ -36,21 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getRedirectResult(auth)
       .then((result) => {
         if (result?.user) {
-          console.log('Redirect result: User signed in', result.user.email);
           setUser(result.user);
-        } else {
-          console.log('Redirect result: No user (normal page load)');
         }
       })
       .catch((error) => {
-        console.error('Error getting redirect result:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
+        console.error('Auth redirect error:', error.code);
       })
       .finally(() => {
         // Set up auth state listener after handling redirect
         unsubscribe = onAuthStateChanged(auth, (user) => {
-          console.log('Auth state changed:', user?.email || 'No user');
           setUser(user);
           setLoading(false);
         });
@@ -65,22 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      const mobile = isMobile();
-      console.log('Sign in attempt - Mobile:', mobile);
-
-      if (mobile) {
+      if (isMobile()) {
         // Use redirect on mobile devices
-        console.log('Using signInWithRedirect');
         await signInWithRedirect(auth, googleProvider);
       } else {
         // Use popup on desktop
-        console.log('Using signInWithPopup');
         await signInWithPopup(auth, googleProvider);
       }
     } catch (error: any) {
-      console.error('Error signing in with Google:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
+      console.error('Auth error:', error.code);
       throw error;
     }
   };
