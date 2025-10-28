@@ -31,6 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     console.log('🔵 AuthProvider: Initializing...');
+    const wasPendingRedirect = localStorage.getItem('pendingRedirect') === 'true';
+    console.log('🔵 Was pending redirect?', wasPendingRedirect);
+
     let unsubscribe: (() => void) | undefined;
 
     // Check for redirect result when component mounts
@@ -38,13 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getRedirectResult(auth)
       .then((result) => {
         console.log('🔵 Redirect result received:', result ? 'User signed in' : 'No redirect');
+
+        // Clear the pending flag
+        localStorage.removeItem('pendingRedirect');
+
         // If there's a redirect result, the user just signed in
         if (result) {
           console.log('✅ Sign-in successful:', result.user.email);
           console.log('✅ User UID:', result.user.uid);
         } else {
           console.log('ℹ️ No redirect result (normal page load)');
+          if (wasPendingRedirect) {
+            console.log('⚠️ Warning: Expected redirect result but got null!');
+            console.log('⚠️ This is a cross-domain authentication limitation');
+            console.log('ℹ️ Mobile auth works on: https://carlsmoviesite.firebaseapp.com');
+          }
         }
+
         // Set up auth state listener after checking redirect result
         console.log('🔵 Setting up onAuthStateChanged listener...');
         unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -56,6 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch((error) => {
         console.error('❌ Auth redirect error:', error.code, error.message);
         console.error('❌ Full error:', error);
+        localStorage.removeItem('pendingRedirect');
+
         // Still set up the listener even if there's an error
         unsubscribe = onAuthStateChanged(auth, (user) => {
           console.log('🔵 Auth state changed (after error):', user ? `Signed in as ${user.email}` : 'Not signed in');
@@ -77,6 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (mobile) {
         console.log('🟢 Using redirect for mobile...');
+        // Set a flag so we know we initiated a redirect
+        localStorage.setItem('pendingRedirect', 'true');
         await signInWithRedirect(auth, googleProvider);
       } else {
         console.log('🟢 Using popup for desktop...');
@@ -85,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       console.error('❌ Sign-in error:', error.code, error.message);
+      localStorage.removeItem('pendingRedirect');
       throw error;
     }
   };
