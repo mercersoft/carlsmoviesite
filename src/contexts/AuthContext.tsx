@@ -22,37 +22,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🔵 AuthProvider: Initializing...');
     let unsubscribe: (() => void) | undefined;
 
     // Check for redirect result when component mounts
+    console.log('🔵 Checking for redirect result...');
     getRedirectResult(auth)
       .then((result) => {
+        console.log('🔵 Redirect result received:', result ? 'User signed in' : 'No redirect');
         // If there's a redirect result, the user just signed in
         if (result) {
-          console.log('Sign-in successful:', result.user.email);
+          console.log('✅ Sign-in successful:', result.user.email);
+          console.log('✅ User UID:', result.user.uid);
+        } else {
+          console.log('ℹ️ No redirect result (normal page load)');
         }
         // Set up auth state listener after checking redirect result
+        console.log('🔵 Setting up onAuthStateChanged listener...');
         unsubscribe = onAuthStateChanged(auth, (user) => {
+          console.log('🔵 Auth state changed:', user ? `Signed in as ${user.email}` : 'Not signed in');
           setUser(user);
           setLoading(false);
         });
       })
       .catch((error) => {
-        console.error('Auth redirect error:', error.code, error.message);
-        setLoading(false);
+        console.error('❌ Auth redirect error:', error.code, error.message);
+        console.error('❌ Full error:', error);
+        // Still set up the listener even if there's an error
+        unsubscribe = onAuthStateChanged(auth, (user) => {
+          console.log('🔵 Auth state changed (after error):', user ? `Signed in as ${user.email}` : 'Not signed in');
+          setUser(user);
+          setLoading(false);
+        });
       });
 
     return () => {
+      console.log('🔵 AuthProvider: Cleaning up...');
       if (unsubscribe) unsubscribe();
     };
   }, []);
 
   const signInWithGoogle = async () => {
     try {
-      // Use redirect for all devices temporarily for debugging
+      console.log('🟢 Starting sign-in with redirect...');
       await signInWithRedirect(auth, googleProvider);
+      console.log('🟢 Redirect initiated (should redirect to Google now)');
     } catch (error: any) {
-      console.error('Auth error:', error.code);
+      console.error('❌ Sign-in error:', error.code, error.message);
       throw error;
     }
   };

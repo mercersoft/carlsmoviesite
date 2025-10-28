@@ -3,7 +3,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQk31bQqK1_giLYuMblLJyyWHociIFRIE",
-  authDomain: "carlsmoviesite.firebaseapp.com",
+  authDomain: "carlsmoviesite.web.app",
   projectId: "carlsmoviesite",
   storageBucket: "carlsmoviesite.firebasestorage.app",
   messagingSenderId: "582235357083",
