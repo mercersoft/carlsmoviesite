@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
   User,
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   signOut as firebaseSignOut,
@@ -16,6 +17,13 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Detect if we're on a mobile device
+const isMobile = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -64,9 +72,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      console.log('🟢 Starting sign-in with redirect...');
-      await signInWithRedirect(auth, googleProvider);
-      console.log('🟢 Redirect initiated (should redirect to Google now)');
+      const mobile = isMobile();
+      console.log('🟢 Starting sign-in - Mobile:', mobile);
+
+      if (mobile) {
+        console.log('🟢 Using redirect for mobile...');
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        console.log('🟢 Using popup for desktop...');
+        await signInWithPopup(auth, googleProvider);
+        console.log('✅ Popup sign-in completed');
+      }
     } catch (error: any) {
       console.error('❌ Sign-in error:', error.code, error.message);
       throw error;
