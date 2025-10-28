@@ -30,13 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const wasPendingRedirect = localStorage.getItem('pendingRedirect') === 'true';
     let unsubscribe: (() => void) | undefined;
 
     // Check for redirect result when component mounts
     getRedirectResult(auth)
-      .then((result) => {
-        // Clear the pending flag
+      .then(() => {
+        // Clear the pending redirect flag
         localStorage.removeItem('pendingRedirect');
 
         // Set up auth state listener
