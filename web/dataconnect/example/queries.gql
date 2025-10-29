@@ -76,3 +76,18 @@ query SearchMovie($titleInput: String, $genre: String) @auth(level: PUBLIC, inse
     imageUrl
   }
 }
+
+# List movies with pagination support
+query ListMoviesPaginated($limit: Int!, $offset: Int!) @auth(level: PUBLIC, insecureReason: "Anyone can list movies with pagination.") {
+  movies(limit: $limit, offset: $offset) {
+    id
+    title
+    imageUrl
+    genre
+    metadata: movieMetadata_on_movie {
+      rating
+      description
+      releaseYear
+    }
+  }
+}
