@@ -1,144 +1,183 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Card, CardContent } from '@/components/ui/card'
+
+interface Stats {
+  totalMovies: number
+  uniqueGenres: number
+  averageRating: number
+  totalActors: number
+  uniqueDirectors: number
+}
 
 export default function Home() {
-  const [name, setName] = useState('')
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const movies = [
-    { id: 1, title: 'The Shawshank Redemption', year: 1994, rating: 9.3 },
-    { id: 2, title: 'The Godfather', year: 1972, rating: 9.2 },
-    { id: 3, title: 'The Dark Knight', year: 2008, rating: 9.0 },
-    { id: 4, title: 'Pulp Fiction', year: 1994, rating: 8.9 },
-  ]
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const moviesSnapshot = await getDocs(collection(db, 'movies'))
+
+        const allGenres = new Set<string>()
+        const allActors = new Set<number>()
+        const allDirectors = new Set<string>()
+        let totalRating = 0
+        let ratedMoviesCount = 0
+
+        moviesSnapshot.docs.forEach(doc => {
+          const data = doc.data()
+
+          // Genres
+          if (data.genres && Array.isArray(data.genres)) {
+            data.genres.forEach((genre: string) => allGenres.add(genre))
+          }
+
+          // Actors
+          if (data.cast && Array.isArray(data.cast)) {
+            data.cast.forEach((actor: any) => allActors.add(actor.id))
+          }
+
+          // Directors
+          if (data.director) {
+            allDirectors.add(data.director)
+          }
+
+          // Ratings
+          if (data.voteAverage && data.voteAverage > 0) {
+            totalRating += data.voteAverage
+            ratedMoviesCount++
+          }
+        })
+
+        setStats({
+          totalMovies: moviesSnapshot.size,
+          uniqueGenres: allGenres.size,
+          averageRating: ratedMoviesCount > 0 ? totalRating / ratedMoviesCount : 0,
+          totalActors: allActors.size,
+          uniqueDirectors: allDirectors.size
+        })
+      } catch (error) {
+        console.error('Error fetching stats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [])
 
   return (
-    <div className="container py-8 space-y-8">
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold tracking-tight">Movie Ladder</h1>
-        <p className="text-muted-foreground">
-          A demo showcasing React + TypeScript + Vite + shadcn/ui
+    <div className="container py-16 space-y-12">
+      <div className="text-center space-y-6 max-w-3xl mx-auto">
+        <h1 className="text-6xl font-bold tracking-tight">
+          Welcome to Movie Ladder
+        </h1>
+        <p className="text-xl text-muted-foreground">
+          Discover, explore, and climb through thousands of amazing movies
         </p>
-        <div className="flex gap-2 justify-center">
-          <Badge>React</Badge>
-          <Badge variant="secondary">TypeScript</Badge>
-          <Badge variant="outline">Vite</Badge>
+        <div className="flex gap-4 justify-center pt-4">
+          <Button asChild size="lg">
+            <Link to="/movies">Browse Movies</Link>
+          </Button>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      {/* Statistics Section */}
+      <div className="max-w-5xl mx-auto">
+        <h2 className="text-2xl font-bold text-center mb-6">Our Collection</h2>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card>
+            <CardContent className="pt-6 text-center">
+              {loading ? (
+                <div className="text-4xl font-bold text-muted-foreground animate-pulse">...</div>
+              ) : (
+                <div className="text-4xl font-bold text-primary">{stats?.totalMovies.toLocaleString()}</div>
+              )}
+              <p className="text-sm text-muted-foreground mt-2">Movies</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6 text-center">
+              {loading ? (
+                <div className="text-4xl font-bold text-muted-foreground animate-pulse">...</div>
+              ) : (
+                <div className="text-4xl font-bold text-primary">{stats?.uniqueGenres}</div>
+              )}
+              <p className="text-sm text-muted-foreground mt-2">Genres</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6 text-center">
+              {loading ? (
+                <div className="text-4xl font-bold text-muted-foreground animate-pulse">...</div>
+              ) : (
+                <div className="text-4xl font-bold text-primary">{stats?.averageRating.toFixed(1)}</div>
+              )}
+              <p className="text-sm text-muted-foreground mt-2">Avg Rating</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6 text-center">
+              {loading ? (
+                <div className="text-4xl font-bold text-muted-foreground animate-pulse">...</div>
+              ) : (
+                <div className="text-4xl font-bold text-primary">{stats?.totalActors.toLocaleString()}</div>
+              )}
+              <p className="text-sm text-muted-foreground mt-2">Actors</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6 text-center">
+              {loading ? (
+                <div className="text-4xl font-bold text-muted-foreground animate-pulse">...</div>
+              ) : (
+                <div className="text-4xl font-bold text-primary">{stats?.uniqueDirectors.toLocaleString()}</div>
+              )}
+              <p className="text-sm text-muted-foreground mt-2">Directors</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto pt-8">
         <Card>
-          <CardHeader>
-            <CardTitle>Welcome</CardTitle>
-            <CardDescription>Enter your name to get started</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            {name && (
-              <p className="text-sm text-muted-foreground">
-                Hello, {name}! Welcome to the site.
-              </p>
-            )}
+          <CardContent className="pt-6 text-center space-y-2">
+            <div className="text-4xl mb-2">🎬</div>
+            <h3 className="font-semibold text-lg">Extensive Collection</h3>
+            <p className="text-sm text-muted-foreground">
+              Browse through hundreds of movies from various genres and eras
+            </p>
           </CardContent>
-          <CardFooter className="gap-2">
-            <Button onClick={() => setName('')} variant="outline">
-              Clear
-            </Button>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>Learn More</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>About This Project</DialogTitle>
-                  <DialogDescription>
-                    This is a demonstration of shadcn/ui components integrated with
-                    Vite, React, and TypeScript. The components are beautifully
-                    designed, accessible, and fully customizable.
-                  </DialogDescription>
-                </DialogHeader>
-              </DialogContent>
-            </Dialog>
-          </CardFooter>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common operations</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button className="w-full" variant="default">
-              Primary Action
-            </Button>
-            <Button className="w-full" variant="secondary">
-              Secondary Action
-            </Button>
-            <Button className="w-full" variant="outline">
-              Outline Action
-            </Button>
-            <Button className="w-full" variant="ghost">
-              Ghost Action
-            </Button>
+          <CardContent className="pt-6 text-center space-y-2">
+            <div className="text-4xl mb-2">⭐</div>
+            <h3 className="font-semibold text-lg">Ratings & Reviews</h3>
+            <p className="text-sm text-muted-foreground">
+              See ratings, reviews, and detailed information about each movie
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6 text-center space-y-2">
+            <div className="text-4xl mb-2">📱</div>
+            <h3 className="font-semibold text-lg">Mobile Friendly</h3>
+            <p className="text-sm text-muted-foreground">
+              Enjoy a seamless experience across all your devices
+            </p>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Movies</CardTitle>
-          <CardDescription>A sample table showcasing movie data</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableCaption>Classic movies with high ratings</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Year</TableHead>
-                <TableHead className="text-right">Rating</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {movies.map((movie) => (
-                <TableRow key={movie.id}>
-                  <TableCell className="font-medium">{movie.title}</TableCell>
-                  <TableCell>{movie.year}</TableCell>
-                  <TableCell className="text-right">{movie.rating}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   )
 }
