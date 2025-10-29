@@ -151,6 +151,6 @@ vite.config.ts.timestamp-*
 *.sln
 *.sw?
 
-# Firebase credentials (IMPORTANT - contains sensitive data!)
+# firebase
 serviceAccountKey.json
 firebase-adminsdk-*.json

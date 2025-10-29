@@ -1,0 +1,17 @@
+touch .gitignore
+```
+
+Open `.gitignore` and paste this:
+```
+# Dependencies
+node_modules/
+
+# Environment variables (contains secrets!)
+.env
+
+# Firebase credentials (contains secrets!)
+serviceAccountKey.json
+firebase-adminsdk-*.json
+
+# Build output
+dist/
