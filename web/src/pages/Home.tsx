@@ -33,9 +33,9 @@ export default function Home() {
   ]
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="container py-8 space-y-8">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold tracking-tight">Carl's Movie Site</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Movie Ladder</h1>
         <p className="text-muted-foreground">
           A demo showcasing React + TypeScript + Vite + shadcn/ui
         </p>
