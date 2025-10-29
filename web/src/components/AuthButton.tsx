@@ -1,4 +1,5 @@
-import { LogIn, LogOut, User } from 'lucide-react';
+import { LogIn, LogOut, User, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,9 +10,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettings } from '@/contexts/SettingsContext';
 
 export function AuthButton() {
   const { user, signInWithGoogle, signOut, loading } = useAuth();
+  const { settings } = useSettings();
+
+  // Determine display name: username > settings displayName > Google displayName > email
+  const displayName = settings?.username ||
+                      settings?.displayName ||
+                      user?.displayName ||
+                      user?.email;
 
   if (loading) {
     return (
@@ -37,14 +46,14 @@ export function AuthButton() {
           {user.photoURL ? (
             <img
               src={user.photoURL}
-              alt={user.displayName || 'User'}
+              alt={displayName || 'User'}
               className="h-6 w-6 rounded-full"
             />
           ) : (
             <User className="h-4 w-4" />
           )}
           <span className="max-w-[150px] truncate">
-            {user.displayName || user.email}
+            {displayName}
           </span>
         </Button>
       </DropdownMenuTrigger>
@@ -58,6 +67,12 @@ export function AuthButton() {
           </div>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/settings">
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={signOut}>
           <LogOut className="h-4 w-4 mr-2" />
           Sign out

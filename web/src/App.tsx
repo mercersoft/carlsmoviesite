@@ -4,6 +4,7 @@ import Home from '@/pages/Home'
 import Movies from '@/pages/Movies'
 import MovieDetail from '@/pages/MovieDetail'
 import Sample from '@/pages/Sample'
+import Settings from '@/pages/Settings'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/movies" element={<Movies />} />
           <Route path="/movies/:id" element={<MovieDetail />} />
           <Route path="/sample" element={<Sample />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>
     </BrowserRouter>

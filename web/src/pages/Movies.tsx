@@ -1,29 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy as firestoreOrderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { useSettings } from '@/contexts/SettingsContext'
 import { MovieCard } from '@/components/MovieCard'
 import { MovieCardSkeleton } from '@/components/MovieCardSkeleton'
 
-// Configuration keys for localStorage
-const INITIAL_LOAD_KEY = 'movieLadder_initialLoadSize'
-const BATCH_SIZE_KEY = 'movieLadder_batchSize'
-
-// Default values
-const DEFAULT_INITIAL_LOAD = 24
-const DEFAULT_BATCH_SIZE = 24
-
 // TMDB image base URL
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500'
-
-// Helper to get config from localStorage
-function getConfig(key: string, defaultValue: number): number {
-  const stored = localStorage.getItem(key)
-  if (stored) {
-    const parsed = parseInt(stored, 10)
-    if (!isNaN(parsed) && parsed > 0) return parsed
-  }
-  return defaultValue
-}
 
 interface Movie {
   id: string
@@ -36,6 +19,7 @@ interface Movie {
 }
 
 export default function Movies() {
+  const { settings, deviceType, loading: settingsLoading } = useSettings()
   const [movies, setMovies] = useState<Movie[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -45,25 +29,69 @@ export default function Movies() {
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null)
 
-  // Get config values
-  const initialLoad = getConfig(INITIAL_LOAD_KEY, DEFAULT_INITIAL_LOAD)
-  const batchSize = getConfig(BATCH_SIZE_KEY, DEFAULT_BATCH_SIZE)
+  // Get settings (or use defaults if not logged in)
+  const displaySettings = settings?.display[deviceType] || {
+    moviesPerPage: deviceType === 'desktop' ? 24 : 12,
+    density: 'comfortable' as const,
+    showRatingsOnCards: true,
+    posterHoverBehavior: 'description' as const
+  }
 
-  // Fetch all movies from Firestore
+  const contentFilters = settings?.preferences.contentFilters || {
+    minRating: 0,
+    yearRange: null,
+    showMatureContent: true
+  }
+
+  const defaultSort = settings?.preferences.defaultSort || 'popularity'
+
+  const initialLoad = displaySettings.moviesPerPage
+  const batchSize = displaySettings.moviesPerPage
+
+  // Calculate grid gap based on density
+  const densityGap = {
+    compact: 'gap-3',
+    comfortable: 'gap-6',
+    cozy: 'gap-8'
+  }[displaySettings.density]
+
+  // Fetch and filter movies from Firestore
   useEffect(() => {
     async function fetchAllMovies() {
       try {
         setLoading(true)
 
+        // Determine Firestore sort field
+        let sortField = 'popularity'
+        let sortDirection: 'desc' | 'asc' = 'desc'
+
+        switch (defaultSort) {
+          case 'rating':
+            sortField = 'voteAverage'
+            sortDirection = 'desc'
+            break
+          case 'releaseDate':
+            sortField = 'releaseDate'
+            sortDirection = 'desc'
+            break
+          case 'alphabetical':
+            sortField = 'title'
+            sortDirection = 'asc'
+            break
+          default:
+            sortField = 'popularity'
+            sortDirection = 'desc'
+        }
+
         // Query Firestore movies collection
         const moviesQuery = query(
           collection(db, 'movies'),
-          orderBy('popularity', 'desc')
+          firestoreOrderBy(sortField, sortDirection)
         )
 
         const querySnapshot = await getDocs(moviesQuery)
 
-        const fetchedMovies: Movie[] = querySnapshot.docs.map(doc => {
+        let fetchedMovies: Movie[] = querySnapshot.docs.map(doc => {
           const data = doc.data()
           return {
             id: doc.id,
@@ -76,6 +104,23 @@ export default function Movies() {
           }
         })
 
+        // Apply content filters
+        fetchedMovies = fetchedMovies.filter(movie => {
+          // Filter by minimum rating
+          if (movie.voteAverage < contentFilters.minRating) {
+            return false
+          }
+
+          // Filter mature content if needed
+          // Note: You would need to add an 'adult' or 'maturityRating' field to your movies
+          // For now, we'll skip this filter since the data model doesn't have it
+          // if (!contentFilters.showMatureContent && movie.adult) {
+          //   return false
+          // }
+
+          return true
+        })
+
         setAllMovies(fetchedMovies)
         setMovies(fetchedMovies.slice(0, initialLoad))
         setHasMore(fetchedMovies.length > initialLoad)
@@ -86,8 +131,11 @@ export default function Movies() {
       }
     }
 
-    fetchAllMovies()
-  }, [initialLoad])
+    // Only fetch if settings are loaded or if user is not logged in
+    if (!settingsLoading) {
+      fetchAllMovies()
+    }
+  }, [initialLoad, defaultSort, contentFilters.minRating, settingsLoading])
 
   // Load more movies
   const loadMore = useCallback(() => {
@@ -133,7 +181,7 @@ export default function Movies() {
     }
   }, [loading, hasMore, loadingMore, loadMore])
 
-  if (loading) {
+  if (loading || settingsLoading) {
     return (
       <div className="container py-8 space-y-8">
         <div className="text-center space-y-4">
@@ -143,7 +191,7 @@ export default function Movies() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${densityGap}`}>
           {Array.from({ length: initialLoad }).map((_, i) => (
             <MovieCardSkeleton key={i} />
           ))}
@@ -158,16 +206,19 @@ export default function Movies() {
         <h1 className="text-4xl font-bold tracking-tight">Movies</h1>
         <p className="text-muted-foreground">
           Browse our collection of {allMovies.length} movies
+          {contentFilters.minRating > 0 && ` (rating ≥ ${contentFilters.minRating.toFixed(1)})`}
         </p>
       </div>
 
       {movies.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No movies found.</p>
+          <p className="text-muted-foreground">
+            No movies found matching your filters.
+          </p>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${densityGap}`}>
             {movies.map(movie => (
               <MovieCard
                 key={movie.id}
@@ -176,13 +227,15 @@ export default function Movies() {
                 imageUrl={movie.posterPath ? `${TMDB_IMAGE_BASE}${movie.posterPath}` : '/placeholder-movie.jpg'}
                 rating={movie.voteAverage}
                 description={movie.overview}
+                showRating={displaySettings.showRatingsOnCards}
+                hoverBehavior={displaySettings.posterHoverBehavior}
               />
             ))}
           </div>
 
           {/* Loading more indicator */}
           {loadingMore && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${densityGap}`}>
               {Array.from({ length: Math.min(batchSize, allMovies.length - movies.length) }).map((_, i) => (
                 <MovieCardSkeleton key={`loading-${i}`} />
               ))}

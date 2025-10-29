@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { PosterHoverBehavior } from '@/types/settings'
 
 interface MovieCardProps {
   id: string
@@ -9,18 +10,30 @@ interface MovieCardProps {
   imageUrl: string
   rating?: number | null
   description?: string | null
+  showRating?: boolean
+  hoverBehavior?: PosterHoverBehavior
 }
 
-export function MovieCard({ id, title, imageUrl, rating, description }: MovieCardProps) {
+export function MovieCard({
+  id,
+  title,
+  imageUrl,
+  rating,
+  description,
+  showRating = true,
+  hoverBehavior = 'description'
+}: MovieCardProps) {
   const [showDescription, setShowDescription] = useState(false)
+
+  const shouldShowHover = hoverBehavior === 'description' && description
 
   return (
     <Link to={`/movies/${id}`} className="group">
       <Card className="overflow-hidden transition-all hover:shadow-lg">
         <div
           className="relative aspect-[2/3] overflow-hidden bg-muted"
-          onMouseEnter={() => setShowDescription(true)}
-          onMouseLeave={() => setShowDescription(false)}
+          onMouseEnter={() => shouldShowHover && setShowDescription(true)}
+          onMouseLeave={() => shouldShowHover && setShowDescription(false)}
         >
           <img
             src={imageUrl}
@@ -29,7 +42,7 @@ export function MovieCard({ id, title, imageUrl, rating, description }: MovieCar
           />
 
           {/* Hover overlay with description */}
-          {description && showDescription && (
+          {shouldShowHover && showDescription && (
             <div className="absolute inset-0 bg-black/90 p-4 flex items-center justify-center transition-opacity">
               <p className="text-sm text-white text-center line-clamp-6">
                 {description}
@@ -38,7 +51,7 @@ export function MovieCard({ id, title, imageUrl, rating, description }: MovieCar
           )}
 
           {/* Rating badge */}
-          {rating !== null && rating !== undefined && rating > 0 && (
+          {showRating && rating !== null && rating !== undefined && rating > 0 && (
             <div className="absolute top-2 right-2">
               <Badge variant="secondary" className="bg-black/70 text-white">
                 ⭐ {rating.toFixed(1)}
