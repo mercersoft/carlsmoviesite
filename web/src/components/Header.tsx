@@ -18,6 +18,9 @@ export function Header() {
             <Button variant="ghost" asChild>
               <Link to="/movies">Movies</Link>
             </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/reviews">Reviews</Link>
+            </Button>
           </div>
         </nav>
 

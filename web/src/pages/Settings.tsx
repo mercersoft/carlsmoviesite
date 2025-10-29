@@ -883,7 +883,7 @@ export default function Settings() {
                 </p>
                 <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
                   <li>We'll fetch your public Letterboxd RSS feed</li>
-                  <li>Only reviews for movies in our database will be imported</li>
+                  <li>Missing movies are automatically fetched from TMDB</li>
                   <li>Duplicate reviews will be skipped automatically</li>
                   <li>Your original reviews remain on Letterboxd</li>
                 </ul>
