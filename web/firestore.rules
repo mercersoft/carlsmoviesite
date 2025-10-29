@@ -5,7 +5,8 @@ service cloud.firestore {
     // Movies collection - public read access
     match /movies/{movieId} {
       allow read: if true;  // Anyone can read movies
-      allow write: if false; // Only server/admin can write
+      allow create: if request.auth != null;  // Authenticated users can add movies (from TMDB during review import)
+      allow update, delete: if false; // Only server/admin can modify/delete
     }
 
     // Users collection

@@ -41,6 +41,12 @@ export interface UserPreferences {
   contentFilters: ContentFilters
 }
 
+export interface LetterboxdIntegration {
+  username: string              // Letterboxd username
+  lastImportDate: Timestamp | null
+  totalReviewsImported: number
+}
+
 export interface UserSettings {
   // Profile
   username: string
@@ -53,6 +59,9 @@ export interface UserSettings {
   reviewVisibility: ReviewVisibility
   showEmail: boolean
   activityVisible: boolean
+
+  // Letterboxd Integration
+  letterboxd: LetterboxdIntegration
 
   // Notifications
   emailPreferences: EmailPreferences
@@ -88,6 +97,13 @@ export function getDefaultSettings(_deviceType: DeviceType = 'desktop'): UserSet
     reviewVisibility: 'public',
     showEmail: false,
     activityVisible: true,
+
+    // Letterboxd Integration
+    letterboxd: {
+      username: '',
+      lastImportDate: null,
+      totalReviewsImported: 0,
+    },
 
     // Notifications
     emailPreferences: {

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { deleteDoc, doc } from 'firebase/firestore'
+import { deleteDoc, doc, Timestamp } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSettings } from '@/contexts/SettingsContext'
+import { importLetterboxdReviews, ImportProgress } from '@/lib/reviewImport'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -16,7 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import {
   User, Lock, Monitor, Settings as SettingsIcon,
-  Bell, Trash2, Download, RefreshCcw
+  Bell, Trash2, Download, RefreshCcw, FileDown
 } from 'lucide-react'
 import {
   Dialog,
@@ -45,10 +46,26 @@ export default function Settings() {
   // Local form state
   const [formData, setFormData] = useState(settings)
 
+  // Import reviews state
+  const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null)
+  const [importComplete, setImportComplete] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importErrors, setImportErrors] = useState<string[]>([])
+
   // Update form data when settings load
   useEffect(() => {
     if (settings) {
-      setFormData(settings)
+      // Ensure letterboxd field exists (for backwards compatibility)
+      const settingsWithDefaults = {
+        ...settings,
+        letterboxd: settings.letterboxd || {
+          username: '',
+          lastImportDate: null,
+          totalReviewsImported: 0
+        }
+      }
+      setFormData(settingsWithDefaults)
     }
   }, [settings])
 
@@ -128,6 +145,49 @@ export default function Settings() {
     setFormData({ ...formData, favoriteGenres: newGenres })
   }
 
+  const handleImportReviews = async () => {
+    if (!formData?.letterboxd.username || !user) return
+
+    setImporting(true)
+    setImportProgress(null)
+    setImportComplete(false)
+    setImportError(null)
+    setImportErrors([])
+
+    try {
+      const result = await importLetterboxdReviews(
+        user.uid,
+        formData.letterboxd.username,
+        (progress) => {
+          setImportProgress(progress)
+        }
+      )
+
+      if (result.success) {
+        // Update settings with import stats
+        const updatedFormData = {
+          ...formData,
+          letterboxd: {
+            ...formData.letterboxd,
+            lastImportDate: Timestamp.now(),
+            totalReviewsImported: formData.letterboxd.totalReviewsImported + result.imported
+          }
+        }
+        setFormData(updatedFormData)
+        await updateSettings(updatedFormData)
+        setImportComplete(true)
+        setImportErrors(result.errors)
+      } else {
+        setImportError(result.errors.join(', ') || 'Import failed')
+        setImportErrors(result.errors)
+      }
+    } catch (error: any) {
+      setImportError(error.message || 'Import failed')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="container py-8 max-w-4xl space-y-6">
       <div className="flex justify-between items-center">
@@ -149,7 +209,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="profile">
             <User className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Profile</span>
@@ -169,6 +229,10 @@ export default function Settings() {
           <TabsTrigger value="notifications">
             <Bell className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Notifications</span>
+          </TabsTrigger>
+          <TabsTrigger value="import">
+            <FileDown className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Import</span>
           </TabsTrigger>
           <TabsTrigger value="account">
             <User className="h-4 w-4 mr-2" />
@@ -666,6 +730,163 @@ export default function Settings() {
                     })
                   }
                 />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Import Reviews Tab */}
+        <TabsContent value="import" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Import Reviews from Letterboxd</CardTitle>
+              <CardDescription>
+                Import your movie reviews from your Letterboxd account
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="letterboxdUsername">Letterboxd Username</Label>
+                <Input
+                  id="letterboxdUsername"
+                  placeholder="yourusername"
+                  value={formData.letterboxd?.username || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      letterboxd: {
+                        username: e.target.value,
+                        lastImportDate: formData.letterboxd?.lastImportDate || null,
+                        totalReviewsImported: formData.letterboxd?.totalReviewsImported || 0
+                      }
+                    })
+                  }
+                  disabled={importing}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Your Letterboxd username (e.g., carlschmid1)
+                </p>
+              </div>
+
+              {formData.letterboxd?.lastImportDate && (
+                <div className="rounded-lg bg-muted p-4 space-y-1">
+                  <p className="text-sm font-medium">Last Import</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formData.letterboxd.lastImportDate.toDate().toLocaleDateString()} at{' '}
+                    {formData.letterboxd.lastImportDate.toDate().toLocaleTimeString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Total reviews imported: {formData.letterboxd.totalReviewsImported}
+                  </p>
+                </div>
+              )}
+
+              {importing && importProgress && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">Importing reviews...</span>
+                      <span className="text-muted-foreground">
+                        {importProgress.processed} / {importProgress.total}
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${(importProgress.processed / importProgress.total) * 100}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {importProgress.currentMovie && (
+                    <p className="text-sm text-muted-foreground">
+                      Processing: {importProgress.currentMovie}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="font-medium text-green-600">
+                        {importProgress.imported}
+                      </p>
+                      <p className="text-muted-foreground">Imported</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-yellow-600">
+                        {importProgress.skipped}
+                      </p>
+                      <p className="text-muted-foreground">Skipped</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-red-600">
+                        {importProgress.failed}
+                      </p>
+                      <p className="text-muted-foreground">Failed</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {importComplete && !importing && (
+                <div className="space-y-3">
+                  <div className="rounded-lg bg-green-50 dark:bg-green-950 p-4">
+                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                      Import completed successfully!
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      Imported {importProgress?.imported || 0} reviews,{' '}
+                      skipped {importProgress?.skipped || 0},{' '}
+                      failed {importProgress?.failed || 0}
+                    </p>
+                  </div>
+
+                  {importErrors.length > 0 && (
+                    <details className="rounded-lg bg-yellow-50 dark:bg-yellow-950 p-4">
+                      <summary className="text-sm font-medium text-yellow-900 dark:text-yellow-100 cursor-pointer">
+                        View {importErrors.length} error{importErrors.length !== 1 ? 's' : ''} (click to expand)
+                      </summary>
+                      <div className="mt-3 space-y-1 max-h-60 overflow-y-auto">
+                        {importErrors.map((error, index) => (
+                          <p key={index} className="text-xs text-yellow-700 dark:text-yellow-300">
+                            • {error}
+                          </p>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
+
+              {importError && (
+                <div className="rounded-lg bg-red-50 dark:bg-red-950 p-4">
+                  <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                    Import failed
+                  </p>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    {importError}
+                  </p>
+                </div>
+              )}
+
+              <Button
+                onClick={handleImportReviews}
+                disabled={!formData.letterboxd?.username || importing}
+                className="w-full"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                {importing ? 'Importing...' : 'Import My Reviews'}
+              </Button>
+
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-4 space-y-2">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  How it works
+                </p>
+                <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+                  <li>We'll fetch your public Letterboxd RSS feed</li>
+                  <li>Only reviews for movies in our database will be imported</li>
+                  <li>Duplicate reviews will be skipped automatically</li>
+                  <li>Your original reviews remain on Letterboxd</li>
+                </ul>
               </div>
             </CardContent>
           </Card>
