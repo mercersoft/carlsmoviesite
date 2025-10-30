@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Movie Ladder favicon exact match">
+  <title>Movie Ladder Favicon - Exact Match</title>
+  <rect width="256" height="256" fill="#1C1B24"/>
+  <defs>
+    <mask id="holes-left" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="white"/>
+      <g fill="black">
+        <rect x="72" y="44" width="12" height="16" rx="2"/>
+        <rect x="72" y="76" width="12" height="16" rx="2"/>
+        <rect x="72" y="108" width="12" height="16" rx="2"/>
+        <rect x="72" y="140" width="12" height="16" rx="2"/>
+        <rect x="72" y="172" width="12" height="16" rx="2"/>
+      </g>
+    </mask>
+    <mask id="holes-right" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="white"/>
+      <g fill="black">
+        <rect x="172" y="44" width="12" height="16" rx="2"/>
+        <rect x="172" y="76" width="12" height="16" rx="2"/>
+        <rect x="172" y="108" width="12" height="16" rx="2"/>
+        <rect x="172" y="140" width="12" height="16" rx="2"/>
+        <rect x="172" y="172" width="12" height="16" rx="2"/>
+      </g>
+    </mask>
+  </defs>
+
+  <!-- Ladder sides -->
+  <rect x="64" y="32" width="32" height="192" rx="6" fill="#DBA944" mask="url(#holes-left)"/>
+  <rect x="160" y="32" width="32" height="192" rx="6" fill="#DBA944" mask="url(#holes-right)"/>
+
+  <!-- Ladder rungs -->
+  <rect x="96" y="84" width="64" height="20" rx="4" fill="#DBA944"/>
+  <rect x="96" y="120" width="64" height="20" rx="4" fill="#DBA944"/>
+  <rect x="96" y="156" width="64" height="20" rx="4" fill="#DBA944"/>
+</svg>

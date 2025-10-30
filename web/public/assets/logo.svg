@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="256" viewBox="0 0 800 256" role="img" aria-label="Movie Ladder Logo">
+  <title>Movie Ladder Logo</title>
+
+  <!-- Film Ladder Icon -->
+  <defs>
+    <mask id="holes-left">
+      <rect width="256" height="256" fill="white"/>
+      <g fill="black">
+        <rect x="48" y="36" width="14" height="18" rx="2"/>
+        <rect x="48" y="72" width="14" height="18" rx="2"/>
+        <rect x="48" y="108" width="14" height="18" rx="2"/>
+        <rect x="48" y="144" width="14" height="18" rx="2"/>
+        <rect x="48" y="180" width="14" height="18" rx="2"/>
+      </g>
+    </mask>
+    <mask id="holes-right">
+      <rect width="256" height="256" fill="white"/>
+      <g fill="black">
+        <rect x="190" y="36" width="14" height="18" rx="2"/>
+        <rect x="190" y="72" width="14" height="18" rx="2"/>
+        <rect x="190" y="108" width="14" height="18" rx="2"/>
+        <rect x="190" y="144" width="14" height="18" rx="2"/>
+        <rect x="190" y="180" width="14" height="18" rx="2"/>
+      </g>
+    </mask>
+  </defs>
+
+  <!-- Left and right rails -->
+  <rect x="40" y="24" width="40" height="208" rx="6" fill="#DBA944" mask="url(#holes-left)"/>
+  <rect x="176" y="24" width="40" height="208" rx="6" fill="#DBA944" mask="url(#holes-right)"/>
+
+  <!-- Ladder rungs -->
+  <rect x="80" y="76" width="96" height="22" rx="4" fill="#DBA944"/>
+  <rect x="80" y="116" width="96" height="22" rx="4" fill="#DBA944"/>
+  <rect x="80" y="156" width="96" height="22" rx="4" fill="#DBA944"/>
+
+  <!-- Text -->
+  <text x="280" y="115" font-family="Georgia, Times New Roman, serif" font-size="72" font-weight="600" fill="#EAE6D8" letter-spacing="1">
+    MOVIE
+  </text>
+  <text x="280" y="195" font-family="Georgia, Times New Roman, serif" font-size="72" font-weight="600" fill="#EAE6D8" letter-spacing="1">
+    LADDER
+  </text>
+</svg>

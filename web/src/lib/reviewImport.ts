@@ -125,6 +125,19 @@ async function importReview(
       }
     }
 
+    // Parse published date (when the review was actually written on Letterboxd)
+    let createdAt: Timestamp = Timestamp.now()
+    if (reviewData.publishedDate) {
+      try {
+        const date = new Date(reviewData.publishedDate)
+        if (!isNaN(date.getTime())) {
+          createdAt = Timestamp.fromDate(date)
+        }
+      } catch (e) {
+        console.warn('Failed to parse published date:', reviewData.publishedDate)
+      }
+    }
+
     // Create review document
     const reviewId = `${userId}_${movieId}`
     const review: Review = {
@@ -137,7 +150,7 @@ async function importReview(
       source: 'letterboxd',
       letterboxdUrl: reviewData.letterboxdUrl,
       letterboxdReviewId: reviewData.letterboxdReviewId,
-      createdAt: Timestamp.now(),
+      createdAt,
       updatedAt: Timestamp.now()
     }
 

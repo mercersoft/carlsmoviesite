@@ -24,7 +24,7 @@ export function AuthButton() {
 
   if (loading) {
     return (
-      <Button variant="outline" disabled>
+      <Button variant="outline" disabled className="bg-transparent text-[hsl(240,67%,94%)] border-[hsl(225,30%,20%)]">
         Loading...
       </Button>
     );
@@ -32,7 +32,7 @@ export function AuthButton() {
 
   if (!user) {
     return (
-      <Button onClick={signInWithGoogle} variant="default">
+      <Button onClick={signInWithGoogle} variant="default" className="bg-[hsl(225,35%,15%)] text-[hsl(240,67%,94%)] hover:bg-[hsl(225,35%,20%)] border-[hsl(225,30%,20%)]">
         <LogIn className="h-4 w-4 mr-2" />
         Sign in with Google
       </Button>
@@ -42,7 +42,7 @@ export function AuthButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 bg-transparent text-[hsl(240,67%,94%)] border-[hsl(225,30%,20%)] hover:bg-[hsl(225,35%,15%)]">
           {user.photoURL ? (
             <img
               src={user.photoURL}
