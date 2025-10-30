@@ -33,8 +33,9 @@ export function AuthButton() {
   if (!user) {
     return (
       <Button onClick={signInWithGoogle} variant="default" className="bg-[hsl(225,35%,15%)] text-[hsl(240,67%,94%)] hover:bg-[hsl(225,35%,20%)] border-[hsl(225,30%,20%)]">
-        <LogIn className="h-4 w-4 mr-2" />
-        Sign in with Google
+        <LogIn className="h-4 w-4 md:mr-2" />
+        <span className="hidden md:inline">Sign in with Google</span>
+        <span className="sr-only md:hidden">Sign in</span>
       </Button>
     );
   }
@@ -52,7 +53,7 @@ export function AuthButton() {
           ) : (
             <User className="h-4 w-4" />
           )}
-          <span className="max-w-[80px] sm:max-w-[150px] truncate">
+          <span className="hidden md:inline max-w-[150px] truncate">
             {displayName}
           </span>
         </Button>

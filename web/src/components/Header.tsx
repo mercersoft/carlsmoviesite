@@ -12,7 +12,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-[hsl(225,46%,11%)] backdrop-blur">
       <div className="container flex h-16 items-center justify-between">
         {/* Left side: Hamburger (mobile) + Logo */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
           {/* Hamburger Menu - Visible only on mobile */}
           <Button
             variant="ghost"
@@ -44,7 +44,7 @@ export function Header() {
         </nav>
 
         {/* Right side buttons */}
-        <div className="flex gap-2 items-center flex-shrink-0">
+        <div className="flex gap-1 md:gap-2 items-center flex-shrink-0">
           <AuthButton />
           <ThemeToggle />
         </div>
