@@ -52,7 +52,7 @@ export function AuthButton() {
           ) : (
             <User className="h-4 w-4" />
           )}
-          <span className="max-w-[150px] truncate">
+          <span className="max-w-[80px] sm:max-w-[150px] truncate">
             {displayName}
           </span>
         </Button>
