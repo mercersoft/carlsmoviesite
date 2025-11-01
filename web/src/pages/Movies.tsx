@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { collection, getDocs, query, orderBy as firestoreOrderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useSettings } from '@/contexts/SettingsContext'
 import { MovieCard } from '@/components/MovieCard'
 import { MovieCardSkeleton } from '@/components/MovieCardSkeleton'
+import { SearchFilters, SearchFiltersState } from '@/components/SearchFilters'
 
 // TMDB image base URL
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500'
@@ -25,6 +26,14 @@ export default function Movies() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [allMovies, setAllMovies] = useState<Movie[]>([])
+
+  const currentYear = new Date().getFullYear()
+  const [searchFilters, setSearchFilters] = useState<SearchFiltersState>({
+    searchQuery: '',
+    selectedGenres: [],
+    minRating: 0,
+    yearRange: [1900, currentYear]
+  })
 
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null)
@@ -137,6 +146,56 @@ export default function Movies() {
     }
   }, [initialLoad, defaultSort, contentFilters.minRating, settingsLoading])
 
+  // Extract unique genres from all movies
+  const availableGenres = useMemo(() => {
+    const genresSet = new Set<string>()
+    allMovies.forEach(movie => {
+      movie.genres.forEach(genre => genresSet.add(genre))
+    })
+    return Array.from(genresSet).sort()
+  }, [allMovies])
+
+  // Apply search and filters
+  const filteredMovies = useMemo(() => {
+    let filtered = allMovies
+
+    // Search by title
+    if (searchFilters.searchQuery) {
+      const query = searchFilters.searchQuery.toLowerCase()
+      filtered = filtered.filter(movie =>
+        movie.title.toLowerCase().includes(query)
+      )
+    }
+
+    // Filter by genres (any of the selected genres)
+    if (searchFilters.selectedGenres.length > 0) {
+      filtered = filtered.filter(movie =>
+        movie.genres.some(genre => searchFilters.selectedGenres.includes(genre))
+      )
+    }
+
+    // Filter by minimum rating
+    if (searchFilters.minRating > 0) {
+      filtered = filtered.filter(movie => movie.voteAverage >= searchFilters.minRating)
+    }
+
+    // Filter by year range
+    if (searchFilters.yearRange) {
+      filtered = filtered.filter(movie => {
+        const year = new Date(movie.releaseDate).getFullYear()
+        return year >= searchFilters.yearRange[0] && year <= searchFilters.yearRange[1]
+      })
+    }
+
+    return filtered
+  }, [allMovies, searchFilters])
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setMovies(filteredMovies.slice(0, initialLoad))
+    setHasMore(filteredMovies.length > initialLoad)
+  }, [filteredMovies, initialLoad])
+
   // Load more movies
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return
@@ -146,13 +205,13 @@ export default function Movies() {
     // Simulate async load
     setTimeout(() => {
       const currentLength = movies.length
-      const nextBatch = allMovies.slice(currentLength, currentLength + batchSize)
+      const nextBatch = filteredMovies.slice(currentLength, currentLength + batchSize)
 
       setMovies(prev => [...prev, ...nextBatch])
-      setHasMore(currentLength + nextBatch.length < allMovies.length)
+      setHasMore(currentLength + nextBatch.length < filteredMovies.length)
       setLoadingMore(false)
     }, 300)
-  }, [movies.length, allMovies, batchSize, loadingMore, hasMore])
+  }, [movies.length, filteredMovies, batchSize, loadingMore, hasMore])
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {
@@ -206,9 +265,16 @@ export default function Movies() {
         <h1 className="text-4xl font-bold tracking-tight">Movies</h1>
         <p className="text-muted-foreground">
           Browse our collection of {allMovies.length} movies
-          {contentFilters.minRating > 0 && ` (rating ≥ ${contentFilters.minRating.toFixed(1)})`}
         </p>
       </div>
+
+      {/* Search and Filters */}
+      <SearchFilters
+        filters={searchFilters}
+        onFiltersChange={setSearchFilters}
+        availableGenres={availableGenres}
+        totalResults={filteredMovies.length}
+      />
 
       {movies.length === 0 ? (
         <div className="text-center py-12">
