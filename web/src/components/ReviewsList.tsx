@@ -7,10 +7,12 @@ import { ReviewCard } from '@/components/ReviewCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Star, Plus } from 'lucide-react'
+import { Star, Plus, Edit, LogIn } from 'lucide-react'
 
 interface ReviewsListProps {
   movieId: string
+  onOpenReviewDialog?: () => void
+  refreshKey?: number // When this changes, refetch reviews
 }
 
 type SortOption = 'recent' | 'highest' | 'lowest'
@@ -20,7 +22,7 @@ interface UserProfile {
   email?: string
 }
 
-export function ReviewsList({ movieId }: ReviewsListProps) {
+export function ReviewsList({ movieId, onOpenReviewDialog, refreshKey }: ReviewsListProps) {
   const { user } = useAuth()
   const [reviews, setReviews] = useState<Review[]>([])
   const [userProfiles, setUserProfiles] = useState<Map<string, UserProfile>>(new Map())
@@ -79,7 +81,7 @@ export function ReviewsList({ movieId }: ReviewsListProps) {
     }
 
     fetchReviews()
-  }, [movieId])
+  }, [movieId, refreshKey])
 
   // Get display name for a user
   const getUserDisplayName = (userId: string): string => {
@@ -100,6 +102,12 @@ export function ReviewsList({ movieId }: ReviewsListProps) {
     const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
     return sum / reviews.length
   }, [reviews])
+
+  // Check if current user has already reviewed this movie
+  const userReview = useMemo(() => {
+    if (!user) return null
+    return reviews.find(review => review.userId === user.uid)
+  }, [reviews, user])
 
   // Sort reviews
   const sortedReviews = useMemo(() => {
@@ -196,11 +204,28 @@ export function ReviewsList({ movieId }: ReviewsListProps) {
             )}
           </div>
 
-          {/* Add Review Button */}
-          {user && (
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Add Review
+          {/* Review Action Button */}
+          {!user ? (
+            <Button size="sm" variant="outline" disabled>
+              <LogIn className="h-4 w-4 mr-2" />
+              Log in to write a review
+            </Button>
+          ) : userReview ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onOpenReviewDialog}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Your Review
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={onOpenReviewDialog}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Write a Review
             </Button>
           )}
         </div>
@@ -212,16 +237,16 @@ export function ReviewsList({ movieId }: ReviewsListProps) {
             <p className="text-muted-foreground mb-4">
               No reviews yet. Be the first to review this movie!
             </p>
-            {user && (
-              <Button>
+            {user ? (
+              <Button onClick={onOpenReviewDialog}>
                 <Plus className="h-4 w-4 mr-2" />
                 Write a Review
               </Button>
-            )}
-            {!user && (
-              <p className="text-sm text-muted-foreground">
-                Sign in to write a review
-              </p>
+            ) : (
+              <Button variant="outline" disabled>
+                <LogIn className="h-4 w-4 mr-2" />
+                Log in to write a review
+              </Button>
             )}
           </div>
         ) : (
