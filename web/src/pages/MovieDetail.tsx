@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
+import { ReviewsList } from '@/components/ReviewsList'
 
 // TMDB image base URLs
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500'
@@ -252,6 +253,9 @@ export default function MovieDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Reviews */}
+            {id && <ReviewsList movieId={id} />}
           </div>
         </div>
       </div>
